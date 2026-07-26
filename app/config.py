@@ -43,10 +43,13 @@ class Settings(BaseSettings):
     POLL_INTERVAL_TRX: int = 20
     POLL_INTERVAL_XMR: int = 60
 
-    # Run Taskiq scheduler inside the API process (InMemoryBroker)
+    # Run Taskiq scheduler inside the API process (InMemoryBroker only)
     TASKIQ_EMBEDDED: bool = True
 
+    # Empty → SQLite locally; Compose sets Postgres
     DATABASE_URL: str = "sqlite:///./data/freedompay.db"
+    # Empty → InMemoryBroker; Compose sets Redis for worker/scheduler
+    REDIS_URL: str = ""
 
     # Service commission (% of merchant amount), e.g. 1.5 = 1.5%
     SERVICE_FEE_PERCENT: Decimal = Field(default=Decimal("1.5"))

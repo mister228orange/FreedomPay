@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1
+
 FROM node:22-alpine AS web
 WORKDIR /build/frontend
 COPY frontend/package.json frontend/package-lock.json* ./
@@ -5,7 +7,7 @@ RUN npm install
 COPY frontend/ ./
 RUN mkdir -p /build/app/static && npm run build
 
-FROM python:3.12-slim
+FROM python:3.12-slim AS api
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -23,7 +25,9 @@ RUN uv venv /app/.venv \
       "httpx>=0.27.0" \
       "sqlmodel>=0.0.22" \
       "segno>=1.6.0" \
-      "taskiq>=0.11.0"
+      "taskiq>=0.11.0" \
+      "taskiq-redis>=1.0.0" \
+      "psycopg[binary]>=3.2.0"
 
 COPY app ./app
 COPY --from=web /build/app/static/web ./app/static/web
@@ -34,3 +38,11 @@ RUN mkdir -p /app/data
 
 EXPOSE 8080
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+
+FROM nginx:1.27-alpine AS frontend
+COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=web /build/app/static/web /usr/share/nginx/html
+COPY app/static/logo.png /usr/share/nginx/html/logo.png
+COPY app/static/embed.js /usr/share/nginx/html/embed.js
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

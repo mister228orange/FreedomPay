@@ -79,7 +79,19 @@ Customer always pays `amount` = merchant + fee (+ unique dust on amount-only cha
 
 ## Import into your project
 
-### Option A — sibling folder + Docker Compose (recommended)
+### Option A — Docker Compose (recommended)
+
+```bash
+cd FreedomPay
+docker compose up --build -d
+./scripts/smoke_compose.sh
+```
+
+Services: **postgres**, **redis**, **api** (FastAPI), **worker** + **scheduler** (Taskiq), **frontend** (nginx SPA on http://localhost:8127). API also on http://localhost:8117.
+
+Copy `.env.docker` for Compose demo wallets / API key, or override via environment.
+
+### Option B — sibling folder + your own Compose
 
 ```text
 your-monorepo/
@@ -95,14 +107,15 @@ cp FreedomPay/.env.example FreedomPay/.env
 # fill WALLET_*, API_KEY, MERCHANT_WEBHOOK_*
 ```
 
-Example Compose service:
+Example Compose service (SQLite + embedded Taskiq):
 
 ```yaml
 services:
   freedompay:
     build:
-      context: ../FreedomPay   # or ./FreedomPay if nested
+      context: ../FreedomPay
       dockerfile: Dockerfile
+      target: api
     ports:
       - "8090:8080"
     env_file:
@@ -112,10 +125,12 @@ services:
       - MERCHANT_WEBHOOK_URL=http://backend:8000/api/v1/payments/webhook/freedompay
       - MERCHANT_WEBHOOK_SECRET=${FREEDOMPAY_WEBHOOK_SECRET}
       - API_KEY=${FREEDOMPAY_API_KEY}
-      - NETWORK=testnet          # or mainnet
-      - DEMO_MODE=true           # testnet simulate only
+      - NETWORK=testnet
+      - DEMO_MODE=true
       - SERVICE_FEE_PERCENT=1.5
       - DUST_IGNORE_USD=0.10
+      - TASKIQ_EMBEDDED=true
+      - REDIS_URL=
     volumes:
       - freedompay-data:/app/data
 
@@ -123,7 +138,7 @@ volumes:
   freedompay-data:
 ```
 
-### Option B — HTTP API only (any stack)
+### Option C — HTTP API only (any stack)
 
 1. Run FreedomPay (`uvicorn` or Docker).
 2. Create invoice from your backend:
@@ -151,7 +166,7 @@ Minimal webhook handler (pseudo):
 # if status == "confirmed": mark payment external_ref as paid (txid = body.txid)
 ```
 
-### Option C — Embed widget on any site
+### Option D — Embed widget on any site
 
 ```html
 <div id="freedompay"></div>
@@ -221,7 +236,9 @@ pytest -q
 | `INVOICE_TTL_BTC` / `_TON` / `_SOL` / … | Per-chain payment await override |
 | `POLL_INTERVAL_SECONDS` | Default chain poll cadence (seconds) |
 | `POLL_INTERVAL_BTC` / `_TON` / `_SOL` / … | Per-chain poll interval override |
-| `TASKIQ_EMBEDDED` | Run Taskiq scheduler inside the API process (`true` by default) |
+| `TASKIQ_EMBEDDED` | Run Taskiq scheduler inside the API process (`true` only without Redis) |
+| `REDIS_URL` | Redis for Taskiq worker/scheduler (empty → InMemoryBroker) |
+| `DATABASE_URL` | SQLite or `postgresql+psycopg://…` |
 
 See `.env.example`.
 

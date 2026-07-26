@@ -17,9 +17,6 @@ from app.broker import broker, scheduler
 from app.config import settings
 from app.db import init_db
 
-# Register scheduled poll tasks with the broker (LabelScheduleSource).
-import app.tasks.polling  # noqa: F401
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("freedompay")
 
@@ -31,10 +28,15 @@ WEB_DIR = STATIC_DIR / "web"
 async def lifespan(_app: FastAPI):
     init_db()
     scheduler_task: asyncio.Task | None = None
+    # Embedded mode is for local InMemoryBroker only (no separate worker).
+    embed = (
+        settings.TASKIQ_EMBEDDED
+        and not settings.REDIS_URL
+        and not broker.is_worker_process
+    )
 
-    if settings.TASKIQ_EMBEDDED and not broker.is_worker_process:
+    if embed:
         await broker.startup()
-        # Scheduler enqueues; InMemoryBroker executes polls as asyncio tasks.
         scheduler_task = asyncio.create_task(
             run_scheduler_task(
                 scheduler,
@@ -44,15 +46,18 @@ async def lifespan(_app: FastAPI):
             ),
             name="taskiq-scheduler",
         )
-        logger.info(
-            "Taskiq scheduler started (embedded InMemoryBroker, per-chain poll)"
-        )
+        logger.info("Taskiq scheduler embedded (InMemoryBroker)")
+    elif settings.REDIS_URL:
+        logger.info("Taskiq uses Redis broker — run worker + scheduler processes")
 
     logger.info(
-        "FreedomPay started network=%s demo=%s fee=%s%%",
+        "FreedomPay started network=%s demo=%s fee=%s%% db=%s",
         settings.NETWORK,
         settings.DEMO_MODE,
         settings.SERVICE_FEE_PERCENT,
+        settings.DATABASE_URL.split("@")[-1]
+        if "@" in settings.DATABASE_URL
+        else settings.DATABASE_URL,
     )
     yield
 
@@ -62,7 +67,7 @@ async def lifespan(_app: FastAPI):
             await scheduler_task
         except asyncio.CancelledError:
             pass
-    if settings.TASKIQ_EMBEDDED and not broker.is_worker_process:
+    if embed:
         await broker.shutdown()
 
 

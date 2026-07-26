@@ -1,0 +1,114 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: freedompay
+      POSTGRES_PASSWORD: freedompay
+      POSTGRES_DB: freedompay
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U freedompay -d freedompay"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Host mapping optional for local psql debugging (+37 offset)
+    ports:
+      - "5470:5432"
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    # Host port = 6380+37; container stays on 6379
+    ports:
+      - "6417:6379"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    env_file:
+      - .env.docker
+    environment:
+      DATABASE_URL: postgresql+psycopg://freedompay:freedompay@postgres:5432/freedompay
+      REDIS_URL: redis://redis:6379/0
+      TASKIQ_EMBEDDED: "false"
+      PUBLIC_BASE_URL: http://localhost:8127
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    ports:
+      - "8117:8080"
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    command: ["taskiq", "worker", "app.broker:broker"]
+    env_file:
+      - .env.docker
+    environment:
+      DATABASE_URL: postgresql+psycopg://freedompay:freedompay@postgres:5432/freedompay
+      REDIS_URL: redis://redis:6379/0
+      TASKIQ_EMBEDDED: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    command: ["taskiq", "scheduler", "app.broker:scheduler"]
+    env_file:
+      - .env.docker
+    environment:
+      DATABASE_URL: postgresql+psycopg://freedompay:freedompay@postgres:5432/freedompay
+      REDIS_URL: redis://redis:6379/0
+      TASKIQ_EMBEDDED: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      worker:
+        condition: service_started
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "8127:80"
+
+volumes:
+  postgres_data:
