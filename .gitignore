@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.env
+*.db
+data/
+.DS_Store
+frontend/node_modules/
+tests/_test_freedompay.db
+# Built SPA is committed for easy local serve; rebuild via frontend npm run build
+# app/static/web/
