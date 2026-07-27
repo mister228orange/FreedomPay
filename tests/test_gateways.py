@@ -36,15 +36,42 @@ def test_get_available_gateway_filters_empty_wallets(client, monkeypatch):
     assert r.status_code == 200
     body = r.json()
     chains = {g["chain"] for g in body["data"]}
-    assert chains == {"bitcoin", "ton", "solana"}
+    assert chains == {"bitcoin", "ton", "ton-usdt", "solana", "solana-usdc"}
     assert body["default_fiat"] == "USD"
     assert Decimal(body["usd_precision"]) == Decimal("0.10")
     assert body["memo_length"] == 4
+    assert "groups" in body
+    group_ids = {g["id"] for g in body["groups"]}
+    assert {"bitcoin", "ton", "solana"} <= group_ids
     for g in body["data"]:
         assert "web" in g["exits"]
         assert "embed" in g["exits"]
         assert g["payment_ttl_seconds"] > 0
         assert g["poll_interval_seconds"] > 0
+        assert g["logo_url"]
+        assert g["blockchain"]
+
+
+def test_ton_usdt_invoice_and_qr(client, monkeypatch):
+    monkeypatch.setattr(settings, "WALLET_TON", "EQ_demo_ton")
+    monkeypatch.setattr(settings, "API_KEY", "test-key")
+    monkeypatch.setattr(settings, "SERVICE_FEE_PERCENT", Decimal("0"))
+    monkeypatch.setattr(settings, "DUST_IGNORE_USD", Decimal("0.10"))
+    monkeypatch.setattr(settings, "MERCHANT_WEBHOOK_URL", "")
+    monkeypatch.setattr(settings, "NETWORK", "testnet")
+
+    r = client.post(
+        "/v1/invoices",
+        headers={"X-API-Key": "test-key"},
+        json={"chain": "ton-usdt", "amount": "10"},
+    )
+    assert r.status_code == 200, r.text
+    inv = r.json()
+    assert inv["currency"] == "USDT"
+    assert inv["chain"] == "ton-usdt"
+    assert inv["memo"]
+    assert "jetton=" in inv["qr_payload"]
+    assert Decimal(inv["amount"]) == Decimal("10.00")
 
 
 def test_per_chain_poll_interval_config():
@@ -116,6 +143,7 @@ def test_invoice_usd_fee_memo_and_page(client, monkeypatch):
     assert Decimal(inv["amount_usd"]) == Decimal("10.20")
     assert Decimal(inv["amount_usd_fee"]) == Decimal("0.20")
     assert inv["memo"] and len(inv["memo"]) == 4
+    assert inv["memo"].isdigit()
     assert inv["page_url"]
     assert inv["div_url"]
     assert inv["qr_url"]

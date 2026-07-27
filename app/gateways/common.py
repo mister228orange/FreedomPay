@@ -15,11 +15,40 @@ logger = logging.getLogger(__name__)
 
 _TOLERANCE = Decimal("0.01")
 
+# Display / logo grouping (invoice ``chain`` may be a token id like ton-usdt)
+BLOCKCHAIN_META: dict[str, tuple[str, str]] = {
+    "bitcoin": ("Bitcoin", "bitcoin"),
+    "ton": ("TON", "ton"),
+    "solana": ("Solana", "solana"),
+    "ethereum": ("Ethereum", "ethereum"),
+    "polygon": ("Polygon", "polygon"),
+    "tron": ("Tron", "tron"),
+    "monero": ("Monero", "monero"),
+}
+
+
+def blockchain_family(chain: str) -> str:
+    key = chain.strip().lower()
+    if key in {"ton", "ton-usdt", "ton_usdt"}:
+        return "ton"
+    if key in {"solana", "sol", "solana-usdc", "solana_usdc", "sol-usdc"}:
+        return "solana"
+    if key in {"bitcoin", "btc"}:
+        return "bitcoin"
+    if key in {"ethereum", "eth"}:
+        return "ethereum"
+    if key in {"polygon", "pol"}:
+        return "polygon"
+    if key in {"tron", "trx"}:
+        return "tron"
+    if key in {"monero", "xmr"}:
+        return "monero"
+    return key.split("-", 1)[0]
+
 
 def amount_matches(currency: str, expected: Decimal, actual: Decimal) -> bool:
     if expected <= 0 or actual <= 0:
         return False
-    # Junk / spam below ~$0.10 USDT is never a payment hit
     if is_dust(currency, actual):
         logger.debug("Skip dust %s %s", actual, currency)
         return False
@@ -78,6 +107,9 @@ class BaseChainGateway(AbstractChainGateway):
     decimals: int
     min_confirmations: int
     supports_memo: bool = False
+    blockchain: str = ""
+    is_token: bool = False
+    token_contract: str | None = None
 
     def wallet(self) -> str:
         raise NotImplementedError
@@ -94,7 +126,16 @@ class BaseChainGateway(AbstractChainGateway):
     def poll_interval_seconds(self) -> int:
         return settings.poll_interval_for(self.chain)
 
+    def _blockchain_id(self) -> str:
+        return self.blockchain or blockchain_family(self.chain)
+
+    def logo_url(self) -> str:
+        base = settings.PUBLIC_BASE_URL.rstrip("/")
+        return f"{base}/static/chains/{self._blockchain_id()}.svg"
+
     def gateway_info(self) -> GatewayInfo:
+        bid = self._blockchain_id()
+        bname, _ = BLOCKCHAIN_META.get(bid, (bid.title(), bid))
         return GatewayInfo(
             chain=self.chain,
             currency=self.currency,
@@ -106,5 +147,10 @@ class BaseChainGateway(AbstractChainGateway):
             supports_memo=self.supports_memo,
             payment_ttl_seconds=self.payment_ttl_seconds(),
             poll_interval_seconds=self.poll_interval_seconds(),
+            blockchain=bid,
+            blockchain_name=bname,
+            logo_url=self.logo_url(),
+            is_token=self.is_token,
+            token_contract=self.token_contract,
             exits=["web", "tg", "embed"],
         )

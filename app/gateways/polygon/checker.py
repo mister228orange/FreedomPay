@@ -9,6 +9,7 @@ from app.gateways.common import BaseChainGateway, evm_find_native
 
 class PolygonGateway(BaseChainGateway):
     chain = "polygon"
+    blockchain = "polygon"
     currency = "POL"
     name = "Polygon"
     decimals = 18

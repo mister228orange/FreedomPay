@@ -10,10 +10,11 @@ from sqlmodel import Session
 from app.config import settings
 from app.db import get_session
 from app.exits import telegram_deeplink, web_pay_payload
-from app.gateways.registry import get_available_gateways
+from app.gateways.registry import get_available_gateways, group_gateways
 from app.pay_html import render_pay_div, render_pay_page
 from app.qrpay import payment_payload, qr_svg
 from app.schemas import (
+    GatewayGroupPublic,
     GatewayPublic,
     GatewaysResponse,
     InvoiceCreate,
@@ -42,8 +43,10 @@ def health() -> Message:
 
 @router.get("/v1/gateways", response_model=GatewaysResponse)
 def get_available_gateway() -> GatewaysResponse:
-    items = [
-        GatewayPublic(
+    raw = get_available_gateways()
+
+    def _pub(g) -> GatewayPublic:
+        return GatewayPublic(
             chain=g.chain,
             currency=g.currency,
             name=g.name,
@@ -53,12 +56,28 @@ def get_available_gateway() -> GatewaysResponse:
             network=g.network,
             payment_ttl_seconds=g.payment_ttl_seconds,
             poll_interval_seconds=g.poll_interval_seconds,
+            blockchain=g.blockchain,
+            blockchain_name=g.blockchain_name,
+            logo_url=g.logo_url,
+            is_token=g.is_token,
+            token_contract=g.token_contract,
             exits=list(g.exits),
         )
-        for g in get_available_gateways()
+
+    items = [_pub(g) for g in raw]
+    groups = [
+        GatewayGroupPublic(
+            id=gr["id"],
+            name=gr["name"],
+            logo_url=gr["logo_url"],
+            network=gr["network"],
+            currencies=[_pub(c) for c in gr["currencies"]],
+        )
+        for gr in group_gateways(raw)
     ]
     return GatewaysResponse(
         data=items,
+        groups=groups,
         count=len(items),
         network=settings.NETWORK,
         service_fee_percent=settings.SERVICE_FEE_PERCENT,

@@ -1,6 +1,6 @@
 # FreedomPay
 
-Non-custodial, build-in crypto merchant acceptor for **BTC / TON / SOL** (optional ETH / POL / TRX / XMR stubs).
+Non-custodial, build-in crypto merchant acceptor for **BTC / TON (+USDT) / SOL (+USDC)** (optional ETH / POL / TRX / XMR stubs).
 
 Watch-only wallets · testnet-ready · service fee · embeddable checkout widget.
 
@@ -65,7 +65,7 @@ One shared receive address cannot tell two identical payments apart by amount al
 
 | Chain type | Identity | How |
 |---|---|---|
-| **Memo chains** (TON, SOL, …) | Unique **memo / comment** | Each invoice gets a random hex memo. The payer must include it; the poller matches `memo` (+ amount). |
+| **Memo chains** (TON, SOL, …) | Unique **memo / comment** | Each invoice gets a random **digit** memo. The payer must include it; the poller matches `memo` (+ amount). |
 | **Amount-only chains** (BTC, EVM natives) | Unique **pay amount** | After merchant amount + service fee, a stable dust suffix from `sha256(invoice_id)` is added. If that total is already used by an open invoice, it bumps by 1 subunit until free. |
 
 Additionally:
@@ -190,7 +190,7 @@ Or mount an existing invoice: `data-invoice="<uuid>"`.
 | `GET /v1/pay/{id}/div?size=sm\|md\|lg&width=360` | Only the widget `<div>` fragment |
 | `GET /v1/pay/{id}/qr.svg` | QR SVG (BIP21 / ton:// / solana:) |
 
-Invoice amounts are **USD by default** (`amount_unit: "usd"`), rounded **up** to **10¢** (`USD_PRECISION`), then converted to native crypto with **ceil**. Short memos use `MEMO_LENGTH` (default **4**).
+Invoice amounts are **USD by default** (`amount_unit: "usd"`), rounded **up** to **10¢** (`USD_PRECISION`), then converted to native crypto with **ceil**. Short memos are **digits only**, length `MEMO_LENGTH` (default **4**).
 
 ```bash
 # Embed only the div on any site

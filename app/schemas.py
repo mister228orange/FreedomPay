@@ -17,11 +17,25 @@ class GatewayPublic(BaseModel):
     network: str
     payment_ttl_seconds: int
     poll_interval_seconds: int
+    blockchain: str
+    blockchain_name: str
+    logo_url: str
+    is_token: bool = False
+    token_contract: str | None = None
     exits: list[str]
+
+
+class GatewayGroupPublic(BaseModel):
+    id: str
+    name: str
+    logo_url: str
+    network: str
+    currencies: list[GatewayPublic]
 
 
 class GatewaysResponse(BaseModel):
     data: list[GatewayPublic]
+    groups: list[GatewayGroupPublic]
     count: int
     network: str
     service_fee_percent: Decimal
@@ -58,9 +72,11 @@ class InvoicePublic(BaseModel):
     external_ref: str | None
     txid: str | None
     confirmations: int
-    created_at: int
-    expires_at: int
-    paid_at: int | None
+    created_at: int = Field(description="Unix timestamp (seconds, UTC epoch)")
+    expires_at: int = Field(description="Unix timestamp (seconds, UTC epoch)")
+    paid_at: int | None = Field(
+        default=None, description="Unix timestamp (seconds, UTC epoch)"
+    )
     exits: dict[str, str]
     pay_url: str
     embed_url: str

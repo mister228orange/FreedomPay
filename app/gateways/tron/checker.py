@@ -11,6 +11,7 @@ from app.gateways.common import BaseChainGateway, amount_matches
 
 class TronGateway(BaseChainGateway):
     chain = "tron"
+    blockchain = "tron"
     currency = "TRX"
     name = "Tron"
     decimals = 6

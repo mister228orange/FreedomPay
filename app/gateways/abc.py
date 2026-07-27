@@ -37,6 +37,11 @@ class GatewayInfo:
     supports_memo: bool = False
     payment_ttl_seconds: int = 1800
     poll_interval_seconds: int = 20
+    blockchain: str = ""
+    blockchain_name: str = ""
+    logo_url: str = ""
+    is_token: bool = False
+    token_contract: str | None = None
     exits: list[str] = field(
         default_factory=lambda: ["web", "div", "tg", "embed"]
     )

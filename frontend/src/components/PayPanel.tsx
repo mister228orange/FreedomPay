@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import {
   checkInvoice,
   fetchInvoicePublic,
-  formatUnixRu,
+  formatUnixLocal,
   getStoredApiKey,
   simulateInvoice,
   type Invoice,
@@ -128,7 +128,7 @@ export default function PayPanel({
           alt=""
         />
         <div>
-          <strong style={{ color: "var(--gold)", letterSpacing: "0.04em" }}>
+          <strong style={{ color: "var(--yellow-dim)", letterSpacing: "0.02em" }}>
             FreedomPay
           </strong>
           <div className={`status ${invoice.status}`}>{invoice.status}</div>
@@ -143,8 +143,9 @@ export default function PayPanel({
           height={compact ? 140 : 180}
           style={{
             background: "#fff",
-            borderRadius: 12,
+            borderRadius: 6,
             padding: 8,
+            border: "1px solid #333",
           }}
         />
         <p className="hint">Scan QR or copy fields into your wallet</p>
@@ -167,9 +168,19 @@ export default function PayPanel({
         {!compact &&
           row("Service fee (USD)", `${invoice.amount_usd_fee} USD`, "fee")}
         <div>
-          <span>Истекает</span>
-          <code>{formatUnixRu(invoice.expires_at)}</code>
+          <span>Created</span>
+          <code>{formatUnixLocal(invoice.created_at)}</code>
         </div>
+        <div>
+          <span>Expires</span>
+          <code>{formatUnixLocal(invoice.expires_at)}</code>
+        </div>
+        {invoice.paid_at != null && (
+          <div>
+            <span>Paid</span>
+            <code>{formatUnixLocal(invoice.paid_at)}</code>
+          </div>
+        )}
         {invoice.txid && (
           <div>
             <span>Tx</span>

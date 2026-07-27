@@ -9,6 +9,7 @@ from app.gateways.common import BaseChainGateway
 
 class MoneroGateway(BaseChainGateway):
     chain = "monero"
+    blockchain = "monero"
     currency = "XMR"
     name = "Monero"
     decimals = 12

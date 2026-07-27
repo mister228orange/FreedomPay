@@ -6,7 +6,22 @@ export type Gateway = {
   min_confirmations: number
   supports_memo: boolean
   network: string
+  payment_ttl_seconds?: number
+  poll_interval_seconds?: number
+  blockchain: string
+  blockchain_name: string
+  logo_url: string
+  is_token: boolean
+  token_contract?: string | null
   exits: string[]
+}
+
+export type GatewayGroup = {
+  id: string
+  name: string
+  logo_url: string
+  network: string
+  currencies: Gateway[]
 }
 
 export type Invoice = {
@@ -71,6 +86,7 @@ async function json<T>(url: string, init?: RequestInit): Promise<T> {
 export function fetchGateways() {
   return json<{
     data: Gateway[]
+    groups: GatewayGroup[]
     count: number
     network: string
     service_fee_percent: string
@@ -123,14 +139,21 @@ export function checkInvoice(id: string, apiKey: string) {
   })
 }
 
-/** Russian locale: дд.мм.гггг, чч:мм */
-export function formatUnixRu(ts: number | null | undefined): string {
-  if (!ts) return "—"
-  return new Date(ts * 1000).toLocaleString("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
+/** Format unix seconds → human-readable local time (user machine timezone). */
+export function formatUnixLocal(ts: number | null | undefined): string {
+  if (ts == null || Number.isNaN(Number(ts))) return "—"
+  const date = new Date(Number(ts) * 1000)
+  if (Number.isNaN(date.getTime())) return "—"
+  return new Intl.DateTimeFormat(undefined, {
     year: "numeric",
+    month: "short",
+    day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-  })
+    second: "2-digit",
+    timeZoneName: "short",
+  }).format(date)
 }
+
+/** @deprecated use formatUnixLocal */
+export const formatUnixRu = formatUnixLocal

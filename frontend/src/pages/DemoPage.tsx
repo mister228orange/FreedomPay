@@ -7,10 +7,12 @@ import {
   getStoredApiKey,
   setStoredApiKey,
   type Gateway,
+  type GatewayGroup,
   type PublicConfig,
 } from "../api"
 
 export default function DemoPage() {
+  const [groups, setGroups] = useState<GatewayGroup[]>([])
   const [gateways, setGateways] = useState<Gateway[]>([])
   const [cfg, setCfg] = useState<PublicConfig | null>(null)
   const [apiKey, setApiKey] = useState(getStoredApiKey())
@@ -23,6 +25,7 @@ export default function DemoPage() {
   useEffect(() => {
     void fetchGateways().then((g) => {
       setGateways(g.data)
+      setGroups(g.groups || [])
       if (g.data.length && !g.data.some((x) => x.chain === chain)) {
         setChain(g.data[0].chain)
       }
@@ -64,8 +67,8 @@ export default function DemoPage() {
         <div>
           <h1 className="brand-name">Demo</h1>
           <p className="brand-tag">
-            Сумма в USD (ceil 10¢) · fee {cfg?.service_fee_percent ?? "…"}% ·
-            memo {cfg?.memo_length ?? 4} chars
+            Amount in USD · fee {cfg?.service_fee_percent ?? "…"}% · memo{" "}
+            {cfg?.memo_length ?? 4} digits
           </p>
         </div>
       </header>
@@ -81,26 +84,37 @@ export default function DemoPage() {
           />
         </label>
 
-        <div style={{ marginBottom: "0.85rem" }}>
+        <div style={{ marginBottom: "0.95rem" }}>
           <span className="hint" style={{ display: "block", marginBottom: 8 }}>
-            Цепочка
+            Network & currency
           </span>
-          <div className="chips">
-            {gateways.map((g) => (
-              <button
-                key={g.chain}
-                type="button"
-                className={`chip${g.chain === chain ? " active" : ""}`}
-                onClick={() => setChain(g.chain)}
-              >
-                {g.name} ({g.currency})
-              </button>
+          <div className="chain-groups">
+            {groups.map((g) => (
+              <div key={g.id} className="chain-group">
+                <div className="chain-group-head">
+                  <img className="chain-logo" src={g.logo_url} alt="" />
+                  <span className="chain-group-title">{g.name}</span>
+                  <span className="chain-group-net">{g.network}</span>
+                </div>
+                <div className="chips">
+                  {g.currencies.map((c) => (
+                    <button
+                      key={c.chain}
+                      type="button"
+                      className={`chip${c.chain === chain ? " active" : ""}`}
+                      onClick={() => setChain(c.chain)}
+                    >
+                      {c.currency}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </div>
 
         <label>
-          Сумма в USD (конвертация → {selected?.currency || "…"}, округление вверх)
+          Amount USD → {selected?.currency || "…"}
           <input
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
@@ -110,26 +124,26 @@ export default function DemoPage() {
         </label>
 
         <label>
-          External ref (опционально, payment id в FirstLayer)
+          External ref (optional)
           <input
             value={externalRef}
             onChange={(e) => setExternalRef(e.target.value)}
-            placeholder="uuid платежа"
+            placeholder="order / payment id"
           />
         </label>
 
         <div className="btn-row">
           <button className="btn btn-gold" type="submit" disabled={busy}>
-            {busy ? "Создание…" : "Создать счёт"}
+            {busy ? "Creating…" : "Create invoice"}
           </button>
           <Link className="btn btn-ghost" to="/">
-            Назад
+            Back
           </Link>
         </div>
         {error && <p className="error">{error}</p>}
         <p className="hint">
-          Клиент платит merchant + комиссия. На testnet с DEMO_MODE можно
-          подтвердить через Simulate без реальной транзакции.
+          Customer pays merchant + fee. On testnet with DEMO_MODE use Simulate
+          without an on-chain tx.
         </p>
       </form>
     </div>

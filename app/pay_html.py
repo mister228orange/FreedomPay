@@ -35,14 +35,6 @@ def _esc(v: str | None) -> str:
     return html.escape(v or "", quote=True)
 
 
-def _fmt_expires(ts: int) -> str:
-    # Russian locale: дд.мм.гггг, чч:мм
-    from datetime import datetime, timezone
-
-    dt = datetime.fromtimestamp(ts, tz=timezone.utc).astimezone()
-    return dt.strftime("%d.%m.%Y, %H:%M")
-
-
 def render_pay_div(
     invoice: Invoice,
     *,
@@ -56,13 +48,16 @@ def render_pay_div(
     try:
         svg = qr_svg(payload, scale=max(2, qr_px // 28))
     except Exception:
-        svg = f'<img alt="QR" width="{qr_px}" height="{qr_px}" src="{base}/v1/pay/{invoice.id}/qr.svg"/>'
+        svg = (
+            f'<img alt="QR" width="{qr_px}" height="{qr_px}" '
+            f'src="{base}/v1/pay/{invoice.id}/qr.svg"/>'
+        )
 
     memo_row = ""
     if invoice.memo:
         memo_row = f"""
         <div class="fp-row">
-          <div class="fp-lab">Memo / comment <em>обязательно</em></div>
+          <div class="fp-lab">Memo / comment <em>required</em></div>
           <div class="fp-val" data-copy="{_esc(invoice.memo)}"><code>{_esc(invoice.memo)}</code>
             <button type="button" class="fp-copy" data-copy="{_esc(invoice.memo)}">Copy</button>
           </div>
@@ -71,6 +66,13 @@ def render_pay_div(
     logo = f"{base}/logo.png"
     usd = invoice.amount_usd or "0"
     usd_fee = invoice.amount_usd_fee or "0"
+    paid_row = ""
+    if invoice.paid_at:
+        paid_row = f"""
+    <div class="fp-row">
+      <div class="fp-lab">Paid</div>
+      <div class="fp-val"><code class="fp-time" data-unix="{int(invoice.paid_at)}">{int(invoice.paid_at)}</code></div>
+    </div>"""
 
     chrome = ""
     if show_chrome:
@@ -86,27 +88,27 @@ def render_pay_div(
     return f"""
 <div class="fp-widget" data-invoice="{invoice.id}" style="max-width:{max_w}px">
   <style>
-    .fp-widget{{font-family:Syne,Segoe UI,sans-serif;color:#f2f2f2;background:linear-gradient(180deg,#2a2a2a,#1c1c1c);
-      border-radius:20px;padding:1.1rem 1.15rem 1.25rem;box-shadow:inset 0 0 0 1px #111,0 16px 40px rgba(0,0,0,.35)}}
+    .fp-widget{{font-family:IBM Plex Sans,Segoe UI,system-ui,sans-serif;color:#1f1f1f;background:#fff;
+      border:1px solid #e0e0e0;border-radius:8px;padding:1.1rem 1.15rem 1.2rem}}
     .fp-widget *{{box-sizing:border-box}}
-    .fp-head{{display:flex;gap:.75rem;align-items:center;margin-bottom:.9rem}}
-    .fp-logo{{width:44px;height:44px;border-radius:50%;object-fit:cover;box-shadow:inset 0 0 0 2px #0f0f0f}}
-    .fp-brand{{color:#f5c518;font-weight:800;letter-spacing:.04em}}
-    .fp-status{{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#e0a84a}}
-    .fp-status.fp-confirmed{{color:#6fbf85}}
-    .fp-qr{{display:grid;place-items:center;margin:.4rem 0 1rem;padding:.6rem;background:#0f0f0f;border-radius:16px}}
-    .fp-qr svg,.fp-qr img{{width:{qr_px}px;height:{qr_px}px;background:#fff;border-radius:8px}}
-    .fp-hint{{color:#9b9b9b;font-size:.8rem;text-align:center;margin:0 0 .85rem}}
-    .fp-row{{margin:.55rem 0}}
-    .fp-lab{{font-size:.72rem;color:#a8a8a8;margin-bottom:.2rem}}
-    .fp-lab em{{font-style:normal;color:#f5c518}}
-    .fp-val{{display:flex;gap:.45rem;align-items:flex-start;justify-content:space-between}}
-    .fp-val code{{font-family:IBM Plex Mono,ui-monospace,monospace;font-size:.8rem;word-break:break-all;color:#fff;flex:1}}
-    .fp-copy{{flex:0 0 auto;border:0;border-radius:10px;background:#f5c518;color:#151515;font:700 .72rem Syne,sans-serif;
-      padding:.45rem .65rem;cursor:pointer}}
+    .fp-head{{display:flex;gap:.7rem;align-items:center;margin-bottom:.85rem}}
+    .fp-logo{{width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid #c8c8c8;background:#f2f2f2}}
+    .fp-brand{{color:#b89a00;font-weight:600;letter-spacing:.02em}}
+    .fp-status{{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#a67c2a}}
+    .fp-status.fp-confirmed{{color:#4d7a52}}
+    .fp-qr{{display:grid;place-items:center;margin:.35rem 0 .9rem;padding:.55rem;background:#f2f2f2;border:1px solid #e0e0e0;border-radius:8px}}
+    .fp-qr svg,.fp-qr img{{width:{qr_px}px;height:{qr_px}px;background:#fff;border-radius:4px}}
+    .fp-hint{{color:#6a6a6a;font-size:.8rem;text-align:center;margin:0 0 .8rem}}
+    .fp-row{{margin:.5rem 0}}
+    .fp-lab{{font-size:.7rem;color:#6a6a6a;margin-bottom:.2rem}}
+    .fp-lab em{{font-style:normal;color:#b89a00}}
+    .fp-val{{display:flex;gap:.4rem;align-items:flex-start;justify-content:space-between}}
+    .fp-val code{{font-family:IBM Plex Mono,ui-monospace,monospace;font-size:.78rem;word-break:break-all;color:#1f1f1f;flex:1}}
+    .fp-copy{{flex:0 0 auto;border:0;border-radius:6px;background:#e6c200;color:#1a1a1a;font:600 .7rem IBM Plex Sans,sans-serif;
+      padding:.4rem .6rem;cursor:pointer}}
     .fp-copy:active{{transform:translateY(1px)}}
-    .fp-copy.ok{{background:#6fbf85}}
-    .fp-grid{{display:grid;gap:.35rem}}
+    .fp-copy.ok{{background:#4d7a52;color:#fff}}
+    .fp-grid{{display:grid;gap:.3rem}}
   </style>
   {chrome}
   <div class="fp-qr">{svg}</div>
@@ -118,12 +120,12 @@ def render_pay_div(
         <button type="button" class="fp-copy" data-copy="{_esc(usd)}">Copy</button></div>
     </div>
     <div class="fp-row">
-      <div class="fp-lab">Send exactly · { _esc(invoice.currency) } · { _esc(invoice.network) }</div>
+      <div class="fp-lab">Send exactly · {_esc(invoice.currency)} · {_esc(invoice.network)}</div>
       <div class="fp-val"><code>{_esc(invoice.amount)}</code>
         <button type="button" class="fp-copy" data-copy="{_esc(invoice.amount)}">Copy</button></div>
     </div>
     <div class="fp-row">
-      <div class="fp-lab">Address · { _esc(invoice.chain) }</div>
+      <div class="fp-lab">Address · {_esc(invoice.chain)}</div>
       <div class="fp-val"><code>{_esc(invoice.address)}</code>
         <button type="button" class="fp-copy" data-copy="{_esc(invoice.address)}">Copy</button></div>
     </div>
@@ -134,14 +136,34 @@ def render_pay_div(
         <button type="button" class="fp-copy" data-copy="{_esc(usd_fee)}">Copy</button></div>
     </div>
     <div class="fp-row">
-      <div class="fp-lab">Expires</div>
-      <div class="fp-val"><code>{_esc(_fmt_expires(invoice.expires_at))}</code></div>
+      <div class="fp-lab">Created</div>
+      <div class="fp-val"><code class="fp-time" data-unix="{int(invoice.created_at)}">{int(invoice.created_at)}</code></div>
     </div>
+    <div class="fp-row">
+      <div class="fp-lab">Expires</div>
+      <div class="fp-val"><code class="fp-time" data-unix="{int(invoice.expires_at)}">{int(invoice.expires_at)}</code></div>
+    </div>
+    {paid_row}
   </div>
   <script>
   (function(s){{
     var root=s.parentElement;
     if(!root) return;
+    function fmt(ts){{
+      var n=Number(ts); if(!n) return '—';
+      try {{
+        return new Intl.DateTimeFormat(undefined,{{
+          year:'numeric',month:'short',day:'2-digit',
+          hour:'2-digit',minute:'2-digit',second:'2-digit',
+          timeZoneName:'short'
+        }}).format(new Date(n*1000));
+      }} catch(e) {{
+        return new Date(n*1000).toLocaleString();
+      }}
+    }}
+    root.querySelectorAll('.fp-time[data-unix]').forEach(function(el){{
+      el.textContent=fmt(el.getAttribute('data-unix'));
+    }});
     root.addEventListener('click',function(e){{
       var b=e.target.closest('.fp-copy'); if(!b) return;
       var t=b.getAttribute('data-copy')||'';
@@ -167,18 +189,17 @@ def render_pay_page(
     div = render_pay_div(invoice, size=size, width=width, show_chrome=True)
     base = settings.PUBLIC_BASE_URL.rstrip("/")
     return f"""<!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>FreedomPay · {_esc(invoice.currency)}</title>
   <link rel="icon" href="{base}/logo.png"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
   <style>
     body{{margin:0;min-height:100vh;display:grid;place-items:center;padding:1.25rem;
-      background:radial-gradient(ellipse 80% 50% at 15% -10%,#4a4a4a,transparent 55%),
-                 linear-gradient(165deg,#2c2c2c,#0d0d0d);font-family:Syne,sans-serif}}
+      background:#f2f2f2;font-family:IBM Plex Sans,system-ui,sans-serif;color:#1f1f1f}}
   </style>
 </head>
 <body>

@@ -1,62 +1,78 @@
 import { Link } from "react-router-dom"
 import { useEffect, useState } from "react"
-import { fetchConfig, fetchGateways, type Gateway, type PublicConfig } from "../api"
+import {
+  fetchConfig,
+  fetchGateways,
+  type GatewayGroup,
+  type PublicConfig,
+} from "../api"
 
 export default function HomePage() {
-  const [gateways, setGateways] = useState<Gateway[]>([])
+  const [groups, setGroups] = useState<GatewayGroup[]>([])
   const [cfg, setCfg] = useState<PublicConfig | null>(null)
 
   useEffect(() => {
-    void fetchGateways().then((g) => setGateways(g.data))
+    void fetchGateways().then((g) => setGroups(g.groups || []))
     void fetchConfig().then(setCfg)
   }, [])
 
   const snippet = `<div id="freedompay"></div>
-<script src="${cfg?.public_base_url || "http://localhost:8090"}/embed.js"
+<script src="${cfg?.public_base_url || ""}/embed.js"
   data-api-key="YOUR_KEY"
-  data-chain="ton"
-  data-amount="1.5"
+  data-chain="ton-usdt"
+  data-amount="10"
   data-target="#freedompay"></script>`
 
   return (
     <div className="shell">
       <header className="brand-row">
-        <img className="brand-mark live" src="/logo.png" alt="FreedomPay" />
+        <img className="brand-mark" src="/logo.png" alt="FreedomPay" />
         <div>
           <h1 className="brand-name">FreedomPay</h1>
           <p className="brand-tag">
-            Crypto acceptor · BTC / TON / SOL · commission-aware invoices
+            Non-custodial crypto payments · grey / yellow checkout
           </p>
         </div>
       </header>
 
       <div className="grid two">
         <section className="panel">
-          <h2>Доступные шлюзы</h2>
-          {gateways.length === 0 ? (
+          <h2>Currencies</h2>
+          {groups.length === 0 ? (
             <p className="hint">
-              Нет настроенных кошельков. Заполните WALLET_BTC / WALLET_TON /
-              WALLET_SOL в `.env` (testnet).
+              No wallets configured. Set WALLET_BTC / WALLET_TON / WALLET_SOL in
+              `.env`.
             </p>
           ) : (
-            <div className="chips">
-              {gateways.map((g) => (
-                <span key={g.chain} className="chip active">
-                  {g.currency} · {g.network}
-                </span>
+            <div className="chain-groups">
+              {groups.map((g) => (
+                <div key={g.id} className="chain-group">
+                  <div className="chain-group-head">
+                    <img className="chain-logo" src={g.logo_url} alt="" />
+                    <span className="chain-group-title">{g.name}</span>
+                    <span className="chain-group-net">{g.network}</span>
+                  </div>
+                  <div className="chips">
+                    {g.currencies.map((c) => (
+                      <span key={c.chain} className="chip active">
+                        {c.currency}
+                        {c.is_token ? " · token" : ""}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           )}
           <p className="hint">
-            Сеть: <strong>{cfg?.network ?? "…"}</strong>
+            Network: <strong>{cfg?.network ?? "…"}</strong>
             {" · "}
-            комиссия сервиса:{" "}
-            <strong>{cfg?.service_fee_percent ?? "…"}%</strong>
-            {cfg?.demo_mode ? " · DEMO simulate включён" : ""}
+            fee: <strong>{cfg?.service_fee_percent ?? "…"}%</strong>
+            {cfg?.demo_mode ? " · demo simulate on" : ""}
           </p>
           <div className="btn-row">
             <Link className="btn btn-gold" to="/demo">
-              Открыть demo
+              Open demo
             </Link>
             <a className="btn btn-ghost" href="/docs">
               API docs
@@ -65,10 +81,9 @@ export default function HomePage() {
         </section>
 
         <section className="panel">
-          <h2>Встраиваемый виджет</h2>
+          <h2>Embed</h2>
           <p className="hint">
-            Один скрипт вставляет iframe-checkout на любой сайт и создаёт счёт
-            через API.
+            Drop-in script creates an invoice and mounts checkout on any site.
           </p>
           <pre className="snippet">{snippet}</pre>
         </section>

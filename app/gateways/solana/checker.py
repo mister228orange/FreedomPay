@@ -12,10 +12,11 @@ from app.gateways.common import BaseChainGateway, amount_matches, json_rpc
 class SolanaGateway(BaseChainGateway):
     chain = "solana"
     currency = "SOL"
-    name = "Solana"
+    name = "SOL"
     decimals = 9
     min_confirmations = 1
     supports_memo = True
+    blockchain = "solana"
 
     def wallet(self) -> str:
         return settings.WALLET_SOL

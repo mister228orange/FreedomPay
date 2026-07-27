@@ -19,6 +19,7 @@ class TonGateway(BaseChainGateway):
     decimals = 9
     min_confirmations = 1
     supports_memo = True
+    blockchain = "ton"
 
     def wallet(self) -> str:
         return settings.WALLET_TON

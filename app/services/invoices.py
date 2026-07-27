@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import logging
 import secrets
-import string
 import uuid
 from decimal import ROUND_DOWN, Decimal
 
@@ -26,8 +25,8 @@ from app.timeutil import unix_now
 
 logger = logging.getLogger(__name__)
 
-# Unambiguous short alphabet for memos (no 0/O/1/I)
-_MEMO_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
+# Digits-only short memos (easy to type in wallets)
+_MEMO_ALPHABET = "0123456789"
 
 
 def _quantize_down(amount: Decimal, decimals: int) -> Decimal:
@@ -102,9 +101,7 @@ def _unique_memo(session: Session, chain: str) -> str | None:
         if memo not in taken:
             return memo
     # Extremely unlikely fallback
-    return "".join(
-        secrets.choice(string.ascii_uppercase + string.digits) for _ in range(length + 2)
-    )
+    return "".join(secrets.choice(_MEMO_ALPHABET) for _ in range(length + 2))
 
 
 def _txid_already_used(session: Session, txid: str, invoice_id: uuid.UUID) -> bool:

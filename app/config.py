@@ -81,6 +81,13 @@ class Settings(BaseSettings):
     WALLET_TRX: str = ""
     WALLET_ETH: str = ""
     WALLET_POLYGON: str = ""
+    # Optional token receive overrides (empty → reuse native wallet on that chain)
+    WALLET_TON_USDT: str = ""
+    WALLET_SOL_USDC: str = ""
+
+    # Token contract / mint overrides (empty → network defaults)
+    TOKEN_TON_USDT: str = ""
+    TOKEN_SOL_USDC: str = ""
 
     # Optional RPC overrides (empty → pick from NETWORK defaults)
     RPC_BTC: str = ""
@@ -136,8 +143,10 @@ class Settings(BaseSettings):
             "bitcoin": self.INVOICE_TTL_BTC,
             "btc": self.INVOICE_TTL_BTC,
             "ton": self.INVOICE_TTL_TON,
+            "ton-usdt": self.INVOICE_TTL_TON,
             "solana": self.INVOICE_TTL_SOL,
             "sol": self.INVOICE_TTL_SOL,
+            "solana-usdc": self.INVOICE_TTL_SOL,
             "ethereum": self.INVOICE_TTL_ETH,
             "eth": self.INVOICE_TTL_ETH,
             "polygon": self.INVOICE_TTL_POL,
@@ -156,8 +165,10 @@ class Settings(BaseSettings):
             "bitcoin": self.POLL_INTERVAL_BTC,
             "btc": self.POLL_INTERVAL_BTC,
             "ton": self.POLL_INTERVAL_TON,
+            "ton-usdt": self.POLL_INTERVAL_TON,
             "solana": self.POLL_INTERVAL_SOL,
             "sol": self.POLL_INTERVAL_SOL,
+            "solana-usdc": self.POLL_INTERVAL_SOL,
             "ethereum": self.POLL_INTERVAL_ETH,
             "eth": self.POLL_INTERVAL_ETH,
             "polygon": self.POLL_INTERVAL_POL,
@@ -168,6 +179,26 @@ class Settings(BaseSettings):
             "xmr": self.POLL_INTERVAL_XMR,
         }
         return max(1, int(by_chain.get(key, self.POLL_INTERVAL_SECONDS)))
+
+    def ton_usdt_jetton(self) -> str:
+        if self.TOKEN_TON_USDT:
+            return self.TOKEN_TON_USDT.strip()
+        # Tether USD jetton master (mainnet); override for testnet via env
+        return "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs"
+
+    def sol_usdc_mint(self) -> str:
+        if self.TOKEN_SOL_USDC:
+            return self.TOKEN_SOL_USDC.strip()
+        if self.NETWORK == "testnet":
+            return "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
+        return "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+
+    def tonapi_base(self) -> str:
+        return (
+            "https://testnet.tonapi.io"
+            if self.NETWORK == "testnet"
+            else "https://tonapi.io"
+        )
 
 
 settings = Settings()

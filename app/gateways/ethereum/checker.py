@@ -9,6 +9,7 @@ from app.gateways.common import BaseChainGateway, evm_find_native
 
 class EthereumGateway(BaseChainGateway):
     chain = "ethereum"
+    blockchain = "ethereum"
     currency = "ETH"
     name = "Ethereum"
     decimals = 18

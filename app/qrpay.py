@@ -5,6 +5,7 @@ from __future__ import annotations
 from decimal import Decimal
 from urllib.parse import quote
 
+from app.config import settings
 from app.models import Invoice
 
 
@@ -16,21 +17,32 @@ def payment_payload(invoice: Invoice) -> str:
     chain = invoice.chain
 
     if chain == "bitcoin":
-        # BIP21
-        q = f"bitcoin:{addr}?amount={amount}"
-        return q
+        return f"bitcoin:{addr}?amount={amount}"
 
     if chain == "ton":
-        # ton://transfer/<addr>?amount=<nanoton>&text=<memo>
         nano = int(Decimal(amount) * Decimal(10**9))
         q = f"ton://transfer/{addr}?amount={nano}"
         if memo:
             q += f"&text={quote(memo)}"
         return q
 
+    if chain == "ton-usdt":
+        units = int(Decimal(amount) * Decimal(10**6))
+        jetton = settings.ton_usdt_jetton()
+        q = f"ton://transfer/{addr}?jetton={jetton}&amount={units}"
+        if memo:
+            q += f"&text={quote(memo)}"
+        return q
+
     if chain == "solana":
-        # Solana Pay transfer request (native SOL)
         q = f"solana:{addr}?amount={amount}"
+        if memo:
+            q += f"&memo={quote(memo)}"
+        return q
+
+    if chain == "solana-usdc":
+        mint = settings.sol_usdc_mint()
+        q = f"solana:{addr}?amount={amount}&spl-token={mint}"
         if memo:
             q += f"&memo={quote(memo)}"
         return q
@@ -38,7 +50,6 @@ def payment_payload(invoice: Invoice) -> str:
     if chain in {"ethereum", "polygon"}:
         return f"ethereum:{addr}?value={amount}"
 
-    # Fallback plain text for copy/scan
     lines = [
         f"FreedomPay {invoice.currency}",
         f"Address: {addr}",

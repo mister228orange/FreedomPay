@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
 _CHAINS = (
     "bitcoin",
     "ton",
+    "ton-usdt",
     "solana",
+    "solana-usdc",
     "ethereum",
     "polygon",
     "tron",

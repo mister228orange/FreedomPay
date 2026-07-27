@@ -115,14 +115,13 @@ def _spa_index() -> HTMLResponse | FileResponse:
 <title>FreedomPay</title>
 <link rel="icon" href="/logo.png"/>
 <style>
-:root{--gold:#F5C518}
-body{margin:0;min-height:100vh;font-family:Syne,Segoe UI,sans-serif;
-background:radial-gradient(ellipse at 20% 0%,#3a3a3a,#1a1a1a 55%,#0e0e0e);
-color:#f2f2f2;display:grid;place-items:center}
+:root{--gold:#e6c200}
+body{margin:0;min-height:100vh;font-family:IBM Plex Sans,Segoe UI,sans-serif;
+background:#f2f2f2;color:#1f1f1f;display:grid;place-items:center}
 .card{text-align:center;padding:2rem}
-img{width:96px;height:96px;border-radius:50%;box-shadow:inset 0 0 0 2px #111}
-h1{color:var(--gold);letter-spacing:.04em}
-a{color:var(--gold)}
+img{width:96px;height:96px;border-radius:50%;border:1px solid #c8c8c8}
+h1{color:#b89a00;letter-spacing:.02em}
+a{color:#b89a00}
 </style></head><body><div class="card">
 <img src="/logo.png" alt="FreedomPay"/>
 <h1>FreedomPay</h1>

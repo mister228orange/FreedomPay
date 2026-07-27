@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 class BitcoinGateway(BaseChainGateway):
     chain = "bitcoin"
+    blockchain = "bitcoin"
     currency = "BTC"
     name = "Bitcoin"
     decimals = 8

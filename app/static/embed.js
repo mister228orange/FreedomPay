@@ -33,7 +33,7 @@
   var amount = script.getAttribute("data-amount");
   var externalRef = script.getAttribute("data-external-ref") || "";
   var height = script.getAttribute("data-height") || "520";
-  var theme = script.getAttribute("data-theme") || "dark";
+  var theme = script.getAttribute("data-theme") || "light";
 
   function ensureHost() {
     var host = document.querySelector(targetSel);
@@ -52,12 +52,15 @@
     frame.src = url;
     frame.title = "FreedomPay";
     frame.setAttribute("loading", "lazy");
+    var bg = theme === "dark" ? "#1a1a1a" : "#f2f2f2";
     frame.style.cssText =
       "width:100%;max-width:420px;height:" +
       height +
-      "px;border:0;border-radius:20px;" +
-      "box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),0 18px 40px rgba(0,0,0,.35);" +
-      "background:#1a1a1a;display:block;";
+      "px;border:0;border-radius:8px;" +
+      "box-shadow:inset 0 0 0 1px #e0e0e0;" +
+      "background:" +
+      bg +
+      ";display:block;";
     frame.allow = "clipboard-write";
     host.appendChild(frame);
     return frame;
